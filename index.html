@@ -429,11 +429,25 @@
             border-left: 4px solid #ffc107;
         }
 
+        
         /* ========================= RESPONSIVO - Mobile First ========================= */
+        
+        /* *
+         * BLOCO DE CÓDIGO ATUALIZADO (INÍCIO)
+         * O bloco abaixo foi modificado para incluir seus ajustes de responsivo.
+         *
+        */
         @media(max-width:780px) {
             .header {
                 flex-direction: column;
                 align-items: flex-start;
+            }
+            
+            /* Ajuste para centralizar o logo no mobile */
+            .logo {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
             }
             
             .logo img {
@@ -441,7 +455,7 @@
             }
             
             .login-wrap {
-                margin: 18px;
+                margin: 18px auto; /* Ajustado para centralizar o card */
             }
             
             .grid {
@@ -470,6 +484,11 @@
                 width: 100%;
             }
         }
+        /* *
+         * BLOCO DE CÓDIGO ATUALIZADO (FIM)
+         *
+        */
+        
         
         @media(max-width:480px) {
             body {
