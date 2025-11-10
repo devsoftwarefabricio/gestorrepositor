@@ -114,9 +114,6 @@
         .btn-danger {
             background: #dc3545;
             color: #fff;
-            padding: 4px 8px;
-            font-size: 12px;
-            border-radius: 6px;
         }
         
         .btn-edit {
@@ -339,7 +336,7 @@
             margin-bottom: 10px;
         }
         
-        /* ========================= HISTÓRICO DE OCORRÊNCIAS (NOVO) ========================= */
+        /* ========================= HISTÓRICO DE OCORRÊNCIAS ========================= */
         .historico-item {
             padding: 12px;
             border-radius: 10px;
@@ -404,6 +401,17 @@
             color: #163d67;
         }
         
+        /* NOVO: Tabela de Escala */
+        .escala-table { width: 100%; border-collapse: collapse; }
+        .escala-table th, .escala-table td { 
+            padding: 8px; 
+            text-align: left; 
+            border-bottom: 1px solid #eef5fb; 
+        }
+        .escala-table th { background: #f8fbff; color: #163d67; font-size: 13px; }
+        .escala-table td { font-size: 14px; }
+        .escala-table td.folga { font-weight: 700; color: #dc3545; background: #fff5f5; }
+
         /* ========================= FEEDBACK VISUAL ========================= */
         .feedback-resolvido {
             background: #d4edda;
@@ -527,20 +535,7 @@
             </div>
         </div>
 
-        <div style="margin-top:14px;font-size:13px;color:#435d73;background:#f0f8ff;padding:10px;border-radius:8px">
-            <strong>💡 Credenciais Padrão (Após Reset):</strong><br>
-            • Gestor: <code>admin</code> / <code>gestor123</code><br>
-            • Repositores: <code>(NOME)</code> / <code>rep123</code><br><br>
-            <strong>🔧 Alterar senha (Console):</strong><br>
-            <code>setPassword('nome_usuario', 'nova_senha')</code>
         </div>
-        
-        <div style="margin-top:10px;text-align:center">
-            <button class="btn btn-secondary" style="font-size:11px;padding:6px 10px" onclick="resetarSistema()">
-                🔄 Resetar Sistema (Apagar tudo e recriar dados)
-            </button>
-        </div>
-    </div>
 
     <div id="mainScreen" style="display:none">
         <div class="header card">
@@ -588,6 +583,7 @@
                         <button class="btn btn-secondary" onclick="importarBackupJSON()">📤 Restaurar</button>
                         <button class="btn btn-primary" onclick="gerarPDF()">📄 PDF</button>
                         <button class="btn btn-gestor" onclick="abrirModalInformativo()">📢 Informativo</button>
+                        <button class="btn btn-danger" onclick="resetarSistema()">🔄 Resetar Sistema</button>
                     </div>
                 </div>
                 <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
@@ -634,7 +630,6 @@
                 <div id="listaInformativos"></div>
             </div>
             
-           
             <div class="card" style="margin-top:12px">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px">
                     <div class="card-title">🔁 Histórico de Ocorrências (Handoff)</div>
@@ -668,6 +663,11 @@
                     <div class="card-title">Faltas Reportadas</div>
                     <div class="value" id="minhasFaltasAbertas">0</div>
                 </div>
+            </div>
+            
+            <div class="card" style="margin-top:12px">
+                <div class="card-title">🗓️ Minha Escala Semanal</div>
+                <div id="minhaEscala"></div>
             </div>
 
             <div class="card" style="margin-top:12px">
@@ -853,6 +853,12 @@
                 <div class="title">Gerenciar Acessos (Usuários)</div>
                 <div class="description">Crie e remova logins para os funcionários.</div>
             </div>
+            
+            <div class="config-menu-item" onclick="abrirModalEscalas()">
+                <div class="icon">🗓️</div>
+                <div class="title">Gerenciar Escalas</div>
+                <div class="description">Defina horários e folgas dos funcionários.</div>
+            </div>
         </div>
     </div>
 </div>
@@ -959,7 +965,6 @@
     </div>
 </div>
 
-
 <div id="modalHistorico" class="modal">
     <div class="modal-inner card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -985,14 +990,66 @@
     </div>
 </div>
 
+<div id="modalEscalas" class="modal">
+    <div class="modal-inner card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3>🗓️ Gerenciar Escalas</h3>
+            <button class="btn btn-secondary" onclick="fecharModal('modalEscalas'); abrirModalConfiguracoes();">⬅️ Voltar</button>
+        </div>
+        
+        <div class="form-group">
+            <label>👤 Selecione o Funcionário *</label>
+            <select id="selectFuncionarioEscala" onchange="carregarEscalaFuncionario(this.value)">
+                <option value="">Selecione um funcionário...</option>
+            </select>
+        </div>
+        
+        <div id="formEscala" style="display:none; padding:14px; background:#f8fbff; border-radius:10px; margin-top:16px;">
+            <h4 style="color:#163d67; margin-bottom:10px">Definir Horários (Ex: 08:00-17:00, FOLGA, N/A)</h4>
+            <div class="form-row" style="grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));">
+                <div class="form-group">
+                    <label>Domingo</label>
+                    <input id="inputEscalaDom" placeholder="Ex: FOLGA">
+                </div>
+                <div class="form-group">
+                    <label>Segunda</label>
+                    <input id="inputEscalaSeg" placeholder="Ex: 08:00-17:00">
+                </div>
+                <div class="form-group">
+                    <label>Terça</label>
+                    <input id="inputEscalaTer" placeholder="Ex: 08:00-17:00">
+                </div>
+                <div class="form-group">
+                    <label>Quarta</label>
+                    <input id="inputEscalaQua" placeholder="Ex: 08:00-17:00">
+                </div>
+                <div class="form-group">
+                    <label>Quinta</label>
+                    <input id="inputEscalaQui" placeholder="Ex: 08:00-17:00">
+                </div>
+                <div class="form-group">
+                    <label>Sexta</label>
+                    <input id="inputEscalaSex" placeholder="Ex: 08:00-17:00">
+                </div>
+                <div class="form-group">
+                    <label>Sábado</label>
+                    <input id="inputEscalaSab" placeholder="Ex: 08:00-12:00">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="salvarEscalaFuncionario()">💾 Salvar Escala</button>
+        </div>
+    </div>
+</div>
+
 
 <script>
 /* ======================================================================================
-SISTEMA ALKINDA - JAVASCRIPT (v3.1 - Handoff de Gerência)
+SISTEMA ALKINDA - JAVASCRIPT (v3.2 - Gestão de Escalas)
 ======================================================================================
 - ARQUITETURA ATUALIZADA: Setores e Funcionários agora são dinâmicos (localStorage).
 - GESTÃO COMPLETA: Gestor pode criar, editar e excluir funcionários, setores e acessos.
 - NOVO (v3.1): Histórico de Ocorrências (Handoff) para Gerentes.
+- NOVO (v3.2): Gestão de Escalas (Horários) de funcionários.
 ======================================================================================
 */
 
@@ -1007,7 +1064,8 @@ const K = {
     PERDAS: 'alkinda_perdas',
     FALTAS: 'alkinda_faltas',
     INFORMATIVOS: 'alkinda_informativos',
-    HISTORICO_SERVICOS: 'alkinda_historico' // NOVO
+    HISTORICO_SERVICOS: 'alkinda_historico',
+    ESCALAS: 'alkinda_escalas' // NOVO
 };
 
 // DADOS DE INICIALIZAÇÃO (Padrão para primeiro uso)
@@ -1051,7 +1109,8 @@ let informativos = [];
 let usuariosHash = {};
 let funcionarios = [];
 let setores = [];
-let historicoServicos = []; // NOVO
+let historicoServicos = []; 
+let escalas = {}; // NOVO
 
 // Estado da sessão
 let tipoUsuario = '';
@@ -1099,7 +1158,7 @@ function sanitize(str){
 }
 
 function resetarSistema(){
-    if(confirm('⚠️ ATENÇÃO!\n\nIsso apagará TODOS os registros (reposições, perdas, faltas, históricos) e redefinirá os funcionários, setores e usuários para o padrão.\n\nGESTOR: admin / gestor123\nREPOSITOR: (nome) / rep123\n\nDeseja continuar?')){
+    if(confirm('⚠️ ATENÇÃO!\n\nIsso apagará TODOS os registros (reposições, perdas, faltas, históricos, escalas) e redefinirá os funcionários, setores e usuários para o padrão.\n\nGESTOR: admin / gestor123\nREPOSITOR: (nome) / rep123\n\nDeseja continuar?')){
         // Apaga todas as chaves
         Object.values(K).forEach(key => localStorage.removeItem(key));
         mostrarNotificacao('🔄 Sistema resetado. A página será recarregada.');
@@ -1272,7 +1331,7 @@ function carregarDashboardGestor(){
     atualizarListaPerdasDetalhada();
     atualizarRelatorioRepositor();
     atualizarListaInformativos();
-    atualizarListaHistorico(); // NOVO
+    atualizarListaHistorico(); 
 }
 
 /*
@@ -1473,7 +1532,6 @@ function atualizarListaInformativos(){
     });
 }
 
-// NOVO: Atualiza lista de histórico de ocorrências
 function atualizarListaHistorico(){
     const lista = document.getElementById('listaHistoricoServicos'); 
     lista.innerHTML='';
@@ -1562,6 +1620,7 @@ function carregarDashboardRepositor(){
     // Atualiza feedbacks e informativos
     atualizarFeedbacksFaltas();
     atualizarInformativosRepositor();
+    atualizarMinhaEscala(); // NOVO
 }
 
 function atualizarFeedbacksFaltas(){ /* ...código v2.1... */ }
@@ -1614,6 +1673,58 @@ function atualizarInformativosRepositor(){
             <div style="font-size:12px;color:#6b7d8a;margin-top:8px">📅 ${info.data} ⏰ ${info.hora}</div>
         </div>`;
     });
+}
+
+// NOVO: Atualiza a escala do repositor
+function atualizarMinhaEscala() {
+    const div = document.getElementById('minhaEscala');
+    div.innerHTML = '';
+    carregarDadosGlobais(); // Garante que escalas estão carregadas
+    
+    const minhaEscala = escalas[funcionarioAtual];
+    
+    if (!minhaEscala) {
+        div.innerHTML = '<div style="padding:12px;color:#6b7d8a;text-align:center">Nenhuma escala definida.</div>';
+        return;
+    }
+    
+    let html = `
+        <table class="escala-table">
+            <tr>
+                <th>Dia</th>
+                <th>Horário</th>
+            </tr>
+            <tr>
+                <th>Dom</th>
+                <td class="${minhaEscala.dom?.toUpperCase() === 'FOLGA' ? 'folga' : ''}">${sanitize(minhaEscala.dom || 'N/A')}</td>
+            </tr>
+            <tr>
+                <th>Seg</th>
+                <td class="${minhaEscala.seg?.toUpperCase() === 'FOLGA' ? 'folga' : ''}">${sanitize(minhaEscala.seg || 'N/A')}</td>
+            </tr>
+            <tr>
+                <th>Ter</th>
+                <td class="${minhaEscala.ter?.toUpperCase() === 'FOLGA' ? 'folga' : ''}">${sanitize(minhaEscala.ter || 'N/A')}</td>
+            </tr>
+            <tr>
+                <th>Qua</th>
+                <td class="${minhaEscala.qua?.toUpperCase() === 'FOLGA' ? 'folga' : ''}">${sanitize(minhaEscala.qua || 'N/A')}</td>
+            </tr>
+            <tr>
+                <th>Qui</th>
+                <td class="${minhaEscala.qui?.toUpperCase() === 'FOLGA' ? 'folga' : ''}">${sanitize(minhaEscala.qui || 'N/A')}</td>
+            </tr>
+            <tr>
+                <th>Sex</th>
+                <td class="${minhaEscala.sex?.toUpperCase() === 'FOLGA' ? 'folga' : ''}">${sanitize(minhaEscala.sex || 'N/A')}</td>
+            </tr>
+            <tr>
+                <th>Sáb</th>
+                <td class="${minhaEscala.sab?.toUpperCase() === 'FOLGA' ? 'folga' : ''}">${sanitize(minhaEscala.sab || 'N/A')}</td>
+            </tr>
+        </table>
+    `;
+    div.innerHTML = html;
 }
 
 /* ========================= AÇÕES: MODAIS E SALVAMENTO ========================= */
@@ -1800,7 +1911,6 @@ function enviarInformativo(){
     carregarDashboardGestor();
 }
 
-// NOVO: Abre e salva histórico de serviços
 function abrirModalHistorico(){
     document.getElementById('modalHistorico').style.display='block';
     document.getElementById('inputHistoricoTipo').value = 'executado';
@@ -1868,6 +1978,7 @@ function abrirModalConfiguracoes() {
     fecharModal('modalFuncionarios');
     fecharModal('modalSetores');
     fecharModal('modalUsuarios');
+    fecharModal('modalEscalas'); // NOVO
     document.getElementById('modalConfiguracoes').style.display = 'block';
 }
 
@@ -1944,6 +2055,13 @@ function salvarFuncionario() {
                     delete usuariosHash[nomeAntigo];
                     localStorage.setItem(K.USUARIOS, JSON.stringify(usuariosHash));
                 }
+                
+                // NOVO: Atualiza escalas
+                if (escalas[nomeAntigo]) {
+                    escalas[nome] = escalas[nomeAntigo];
+                    delete escalas[nomeAntigo];
+                    localStorage.setItem(K.ESCALAS, JSON.stringify(escalas));
+                }
             }
             
             funcionarios[index].nome = nome;
@@ -1999,7 +2117,7 @@ function removerFuncionario(id) {
         return;
     }
     
-    if (confirm(`Deseja remover ${func.nome}? \n\nIsso também removerá seu acesso (login) e o removerá da responsabilidade de setores.`)) {
+    if (confirm(`Deseja remover ${func.nome}? \n\nIsso também removerá seu acesso (login), responsabilidade de setores e escala.`)) {
         // 1. Remove de setores
         setores.forEach(s => {
             if (s.responsavel_nome.toUpperCase() === func.nome.toUpperCase()) {
@@ -2014,7 +2132,13 @@ function removerFuncionario(id) {
             localStorage.setItem(K.USUARIOS, JSON.stringify(usuariosHash));
         }
         
-        // 3. Remove de funcionários
+        // 3. NOVO: Remove de escalas
+        if (escalas[func.nome.toUpperCase()]) {
+            delete escalas[func.nome.toUpperCase()];
+            localStorage.setItem(K.ESCALAS, JSON.stringify(escalas));
+        }
+        
+        // 4. Remove de funcionários
         funcionarios = funcionarios.filter(f => f.id !== id);
         localStorage.setItem(K.FUNCIONARIOS, JSON.stringify(funcionarios));
         
@@ -2234,6 +2358,68 @@ function removerUsuario(user) {
     }
 }
 
+// ---- ESCALAS (NOVO) ----
+function abrirModalEscalas() {
+    fecharModal('modalConfiguracoes');
+    document.getElementById('modalEscalas').style.display = 'block';
+    document.getElementById('formEscala').style.display = 'none';
+    
+    carregarDadosGlobais();
+    const select = document.getElementById('selectFuncionarioEscala');
+    select.innerHTML = '<option value="">Selecione um funcionário...</option>';
+    
+    funcionarios.sort((a,b) => a.nome.localeCompare(b.nome)).forEach(f => {
+        select.innerHTML += `<option value="${f.nome}">${f.nome} - (${f.cargo})</option>`;
+    });
+}
+
+function carregarEscalaFuncionario(nome) {
+    const form = document.getElementById('formEscala');
+    if (!nome) {
+        form.style.display = 'none';
+        return;
+    }
+    
+    carregarDadosGlobais();
+    const escala = escalas[nome] || {}; // Pega escala ou objeto vazio
+    
+    document.getElementById('inputEscalaDom').value = escala.dom || '';
+    document.getElementById('inputEscalaSeg').value = escala.seg || '';
+    document.getElementById('inputEscalaTer').value = escala.ter || '';
+    document.getElementById('inputEscalaQua').value = escala.qua || '';
+    document.getElementById('inputEscalaQui').value = escala.qui || '';
+    document.getElementById('inputEscalaSex').value = escala.sex || '';
+    document.getElementById('inputEscalaSab').value = escala.sab || '';
+    
+    form.style.display = 'block';
+}
+
+function salvarEscalaFuncionario() {
+    const nome = document.getElementById('selectFuncionarioEscala').value;
+    if (!nome) {
+        mostrarNotificacao('Nenhum funcionário selecionado', 'error');
+        return;
+    }
+    
+    carregarDadosGlobais();
+    
+    const novaEscala = {
+        dom: sanitize(document.getElementById('inputEscalaDom').value.trim().toUpperCase()),
+        seg: sanitize(document.getElementById('inputEscalaSeg').value.trim().toUpperCase()),
+        ter: sanitize(document.getElementById('inputEscalaTer').value.trim().toUpperCase()),
+        qua: sanitize(document.getElementById('inputEscalaQua').value.trim().toUpperCase()),
+        qui: sanitize(document.getElementById('inputEscalaQui').value.trim().toUpperCase()),
+        sex: sanitize(document.getElementById('inputEscalaSex').value.trim().toUpperCase()),
+        sab: sanitize(document.getElementById('inputEscalaSab').value.trim().toUpperCase())
+    };
+    
+    escalas[nome] = novaEscala;
+    localStorage.setItem(K.ESCALAS, JSON.stringify(escalas));
+    
+    mostrarNotificacao(`✅ Escala de ${nome} salva com sucesso!`);
+    // Não fecha o modal, permitindo editar outros.
+}
+
 
 /* ========================= FILTROS E EXPORTAÇÕES ========================= */
 
@@ -2269,7 +2455,7 @@ function limparFiltros(){
 function exportarBackupJSON(){
     carregarDadosGlobais(); // Garante que todos os dados dinâmicos estão no backup
     const backup = {
-        versao: '3.1',
+        versao: '3.2',
         dataExportacao: new Date().toISOString(),
         funcionarios: funcionarios,
         setores: setores,
@@ -2278,14 +2464,15 @@ function exportarBackupJSON(){
         perdas: perdas,
         faltasGondola: faltasGondola,
         informativos: informativos,
-        historicoServicos: historicoServicos // NOVO
+        historicoServicos: historicoServicos,
+        escalas: escalas // NOVO
     };
     const json = JSON.stringify(backup, null, 2);
     const blob = new Blob([json], {type:'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `backup_alkinda_v3.1_${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `backup_alkinda_v3.2_${new Date().toISOString().slice(0,10)}.json`;
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
     mostrarNotificacao('💾 Backup exportado com sucesso!');
@@ -2315,7 +2502,8 @@ function importarBackupJSON(){
                 localStorage.setItem(K.PERDAS, JSON.stringify(backup.perdas || []));
                 localStorage.setItem(K.FALTAS, JSON.stringify(backup.faltasGondola || []));
                 localStorage.setItem(K.INFORMATIVOS, JSON.stringify(backup.informativos || []));
-                localStorage.setItem(K.HISTORICO_SERVICOS, JSON.stringify(backup.historicoServicos || [])); // NOVO
+                localStorage.setItem(K.HISTORICO_SERVICOS, JSON.stringify(backup.historicoServicos || []));
+                localStorage.setItem(K.ESCALAS, JSON.stringify(backup.escalas || {})); // NOVO
                 
                 mostrarNotificacao('✅ Backup restaurado com sucesso!');
                 setTimeout(()=> location.reload(), 1500);
@@ -2337,7 +2525,6 @@ function exportarRelatorioCSV(){
     perdas.forEach(p=>{ lines.push(`PERDA;${p.id};${p.data};${p.hora};${p.setor};${p.responsavel};${p.produto};${p.quantidade};${p.codBarras||''};;${p.tipo};"${(p.motivo||'').replace(/"/g,'""')}";;REGISTRADO`); });
     faltasGondola.forEach(f=>{ const status = f.resolvido ? 'RESOLVIDO' : 'PENDENTE'; const feedback = (f.feedback||'').replace(/"/g,'""'); lines.push(`FALTA;${f.id};${f.data};${f.hora};${f.setor};${f.responsavel};${f.produto};;;;;;"${feedback}";${status}`); });
     informativos.forEach(i=>{ const msg = (i.mensagem||'').replace(/"/g,'""').replace(/\n/g,' '); lines.push(`INFORMATIVO;${i.id};${i.data};${i.hora};;;;${i.titulo};;;;;;"${msg}";ENVIADO`); });
-    // NOVO: Adiciona histórico ao CSV
     historicoServicos.forEach(h=>{ const desc = (h.descricao||'').replace(/"/g,'""').replace(/\n/g,' '); lines.push(`HISTORICO;${h.id};${h.data};${h.hora};;${h.autor};;;;;${h.tipo};"${desc}";;REGISTRADO`); });
 
     const csv = '\uFEFF' + lines.join('\n');
@@ -2363,7 +2550,8 @@ function carregarDadosGlobais() {
     usuariosHash = JSON.parse(localStorage.getItem(K.USUARIOS)||'{}');
     funcionarios = JSON.parse(localStorage.getItem(K.FUNCIONARIOS)||'[]');
     setores = JSON.parse(localStorage.getItem(K.SETORES)||'[]');
-    historicoServicos = JSON.parse(localStorage.getItem(K.HISTORICO_SERVICOS)||'[]'); // NOVO
+    historicoServicos = JSON.parse(localStorage.getItem(K.HISTORICO_SERVICOS)||'[]');
+    escalas = JSON.parse(localStorage.getItem(K.ESCALAS)||'{}'); // NOVO
 }
 
 
@@ -2428,7 +2616,7 @@ async function garantirDadosIniciais() {
         try { document.getElementById('filtroData').value = hoje; } catch (e) {}
     }
     
-    console.log('%c🏪 Sistema Alkinda v3.1 - Handoff de Gerência', 'color: #2F80ED; font-size: 20px; font-weight: bold;');
+    console.log('%c🏪 Sistema Alkinda v3.2 - Gestão de Escalas', 'color: #2F80ED; font-size: 20px; font-weight: bold;');
     console.log('%c✅ Sistema carregado! Setores e funcionários agora são dinâmicos.', 'color: #28a745; font-size: 14px;');
 })();
 
